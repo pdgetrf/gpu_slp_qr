@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 	set_grid (&grid, ictxt, nprocs_mpi, myrank_mpi, myrow, mycol, nprow, npcol, nb);
 
 	if (myrank_mpi==0)
-		printf ("M\t\tNc\t\tMc\t\tFlop/s (r)\t\tFlop/s (n)\t\tPerc\t\tresid\t\twho failed\n");
+		printf ("M\t\tGFlop/s (r)\t\tGFlop/s (n)\t\tPerc\t\tresid\t\twho failed\n");
 
 	for (i=start; i<=end; i+=step)
 	{
@@ -154,10 +154,6 @@ int main(int argc, char **argv)
 			MPI_Allreduce ( MPI_IN_PLACE, &nchkr, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD );
 			nchkc = numroc_( &N, &nb, &mycol, &izero, &npcol ); //LOCr(N_A) 
 			MPI_Allreduce ( MPI_IN_PLACE, &nchkc, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD );
-
-			
-			if (myrank_mpi==0)
-				printf ("%d\t\t%d\t\t", nchkc, nchkr);
 
 			// generate matrix
 			distr_matrix (true,	 &A,    descA, M, N, &grid, &np_A, &nq_A);
@@ -194,7 +190,7 @@ int main(int argc, char **argv)
 			MPI_Reduce ( &t1, &MPIelapsed1, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 			
 			if (myrank_mpi==0)
-				printf ("%f\t\t", MPIelapsed1);
+				printf ("%f\t\t", 4.0/3.0*M*M*M/MPIelapsed1/1e9);
 			
 			resid1 = verifyQR (Aorg, A, M, N, descA, tau, &grid);
 
@@ -231,7 +227,7 @@ int main(int argc, char **argv)
 			MPI_Reduce ( &t1, &MPIelapsed2, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
 			if (myrank_mpi==0)
-				printf ("%f\t\t", MPIelapsed2);
+				printf ("%f\t\t", 4.0/3.0*M*M*M/MPIelapsed2/1e9);
 			
 			resid2 = verifyQR (Aorg, A, M, N, descA, tau, &grid);
 
