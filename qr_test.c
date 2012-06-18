@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 		{
 			int lwork = -1;
 			double lazywork;
-			origpdgeqrf_ (&M, &N, NULL, &ione, &ione, descA, NULL, &lazywork, &lwork, &info);
+			gpu_pdgeqrf_ (&M, &N, NULL, &ione, &ione, descA, NULL, &lazywork, &lwork, &info);
 			lwork = (int)lazywork;
 			double *work=(double*)malloc(lwork*sizeof(double));
 			double *tau = (double*)malloc(nchkc*sizeof(double));
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 			MPIt1 = MPI_Wtime();    
 
 			//first entry (healthy)
-			origpdgeqrf_ (&M, &N, A, &ione, &ione, descA, tau, work, &lwork, &info);
+			gpu_pdgeqrf_ (&M, &N, A, &ione, &ione, descA, tau, work, &lwork, &info);
 			checkerror(info, 0);
 			
 			MPIt2 = MPI_Wtime();

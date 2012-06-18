@@ -29,11 +29,11 @@ LDFLAGS =  -L$(HOME)/lib/lapack-3.3.1\
 		   -L$(HOME)/lib/BLACS/LIB 
 
 
-LINKLIB =   qr_test.o pdgeqrrv.o pdmatgen.o pmatgeninc.o pdlaprnt.o orig_pdgeqrf.o util_ft.o $(FASTBLASLIB)
+LINKLIB =   qr_test.o pdgeqrrv.o pdmatgen.o pmatgeninc.o pdlaprnt.o orig_pdgeqrf.o gpu_pdgeqrf.o util_ft.o $(FASTBLASLIB)
 
 PROG = qr_test.x
 
-$(PROG) : qr_test.o pdgeqrrv.o pdmatgen.o pmatgeninc.o pdlaprnt.o util_ft.o orig_pdgeqrf.o 
+$(PROG) : qr_test.o pdgeqrrv.o pdmatgen.o pmatgeninc.o pdlaprnt.o util_ft.o orig_pdgeqrf.o gpu_pdgeqrf.o 
 	$(FC) -o $(PROG) $(CFLAGS) $(LDFLAGS) $(LINKLIB) 
 
 .c.o:

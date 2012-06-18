@@ -105,6 +105,8 @@ extern void pdgetrf_ (int *M, int *N, double *A, int *ia, int *ja, int *descA, i
 
 extern void origpdgetrf_ (int *M, int *N, double *A, int *ia, int *ja, int *descA, int *ipiv, int *info);
 
+extern void gpu_pdgetrf_ (int *M, int *N, double *A, int *ia, int *ja, int *descA, int *ipiv, int *info);
+
 extern void pdtrsm_( char * SIDE, char * UPLO, char * TRANS, char * DIAG, int * M, int * N, double * ALPHA, double * A, int * IA, int * JA, int * DESCA,
 									              double * B, int * IB, int * JB, int * DESCB );
 
