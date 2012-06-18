@@ -17,9 +17,6 @@ INC       = -I$(CUDADIR)/include
 
 
 CFLAGS = -I/opt/mkl/include 
-CFLAGS += -DCHECKPOINT
-#CFLAGS += -DVERIFY_CHK
-CFLAGS += -DLOCALCOPY
 #CFLAGS += -DTIMING
 FFLAGS =  -fsecond-underscore
 
