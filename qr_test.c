@@ -20,7 +20,6 @@ int real_err_step;
 int err_XX=1;	// myrow
 int err_YY=1;	// mycol, both are 0-based
 int cc;
-int ifcleanfile;
 
 
 int main(int argc, char **argv) 
@@ -35,7 +34,7 @@ int main(int argc, char **argv)
 	double resid1, resid2;
 	int info;
 	int nprocs;
-	int M, M_e, N, N_e, nchkr, nchkc;
+	int M, N, nchkr, nchkc;
 	int start, end, step;
 	int iam;
 	int myrank_mpi, nprocs_mpi;
@@ -138,7 +137,6 @@ int main(int argc, char **argv)
 
 	for (i=start; i<=end; i+=step)
 	{
-		ifcleanfile = 0;
 		N = M = i;
 		if (myrank_mpi==0)
 			printf ("%d\t\t", M);
@@ -162,10 +160,8 @@ int main(int argc, char **argv)
 				printf ("%d\t\t%d\t\t", nchkc, nchkr);
 
 			// generate matrix
-			M_e = M;// + nchkr*2 + ((nchkr/nb)%nprow==0)*nb;
-			N_e = N + nchkc*2;// + ((nchkc/nb)%npcol==0)*nb;
-			distr_matrix (true,	 &A,    descA, M_e, N_e, &grid, &np_A, &nq_A);
-			distr_matrix (false, &Aorg, NULL,  M_e, N_e, &grid, NULL,  NULL);	// for verification
+			distr_matrix (true,	 &A,    descA, M, N, &grid, &np_A, &nq_A);
+			distr_matrix (false, &Aorg, NULL,  M, N, &grid, NULL,  NULL);	// for verification
 
 			if (np_A*nq_A!=0)
 			{
@@ -173,35 +169,22 @@ int main(int argc, char **argv)
 			}
 		}
 		
-		// pick failure processor
-		real_err_step=err_block*nb*npcol+nb*err_step+1;
-		int lrindx, lcindx, rsrc, csrc;
-		infog2l_ (&real_err_step, &real_err_step, descA, &nprow, &npcol, &myrow, &mycol, &lrindx, &lcindx, &rsrc, &csrc);
-		err_XX = (rsrc+1)%nprow;
-		err_YY = csrc;
-		
 		/*
-		 *	call resilient QR
+		 *	call GPU_QR
 		 */ 
 		{
 			int lwork = -1;
 			double lazywork;
-			origpdgeqrf_ (&M, &N_e, NULL, &ione, &ione, descA, NULL, &lazywork, &lwork, &info);
+			origpdgeqrf_ (&M, &N, NULL, &ione, &ione, descA, NULL, &lazywork, &lwork, &info);
 			lwork = (int)lazywork;
 			double *work=(double*)malloc(lwork*sizeof(double));
 			double *tau = (double*)malloc(nchkc*sizeof(double));
 			
-			get_checksuite (N_e-N, M_e-M, ((nchkc/nb)%npcol==0), ((nchkr/nb)%nprow==0), nchkc, nchkr, &cs, &grid);
-			set_FTKit (A, &cs, tau, work, lwork);
-
 			MPI_Barrier(MPI_COMM_WORLD);
 			MPIt1 = MPI_Wtime();    
 
 			//first entry (healthy)
-			ft_pdgeqrf (&M, &N_e, A, &ione, &ione, descA, tau, work, &lwork, &info, &grid, &cs, 0);
-
-			//second entry (correcting)
-			//ft_pdgeqrf (&M, &N_e, A, &ione, &ione, descA, tau, work, &lwork, &info, &grid, &cs, 1);
+			origpdgeqrf_ (&M, &N, A, &ione, &ione, descA, tau, work, &lwork, &info);
 			checkerror(info, 0);
 			
 			MPIt2 = MPI_Wtime();
@@ -210,8 +193,6 @@ int main(int argc, char **argv)
 
 			MPI_Reduce ( &t1, &MPIelapsed1, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 			
-			del_checksuite (&cs, nb);
-
 			if (myrank_mpi==0)
 				printf ("%f\t\t", MPIelapsed1);
 			
@@ -219,7 +200,6 @@ int main(int argc, char **argv)
 
 			free(work);
 			free(tau);
-			free(cs.localcopy);
 		}
 			
 		if (np_A*nq_A!=0)
@@ -228,7 +208,7 @@ int main(int argc, char **argv)
 		}
 
 		/*
-		 *	call ScaLAPACK QR without FT
+		 *	call ScaLAPACK QR 
 		 */ 
 		{
 			int lwork = -1;
@@ -281,10 +261,7 @@ int main(int argc, char **argv)
 					else
 						who='W';
 				}
-				printf ("%c\t", who);
-				printf ("#reduce=%d\n", cc);
-
-
+				printf ("%c\n", who);
 			}
 
 		}
@@ -298,13 +275,6 @@ int main(int argc, char **argv)
 			free (A);
 			free (Aorg);
 		}
-
-		if (ifcleanfile)
-		{
-			char dumpname[256];
-			sprintf (dumpname, "rm /ssd/dump_%d", myrank_mpi);
-			system(dumpname);
-		}
 	}
 
 	/*
@@ -313,7 +283,6 @@ int main(int argc, char **argv)
 	fflush (stdout);
 	Cblacs_gridexit( ictxt );
 	MPI_Finalize();
-	printf ("here\n");
 
 	return 0;
 }
