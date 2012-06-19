@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "slp.h"
 #include "util_ft.h"
+#include "util_gpu.h"
 #include "driver.h"
 
 #define here MPI_Barrier (MPI_COMM_WORLD);\
@@ -24,6 +25,8 @@ int cc;
 
 int main(int argc, char **argv) 
 {
+
+	TESTING_CUDA_INIT();
 
 	double *A=NULL, *Aorg=NULL;
 	int descA[9]; 
@@ -279,6 +282,8 @@ int main(int argc, char **argv)
 	fflush (stdout);
 	Cblacs_gridexit( ictxt );
 	MPI_Finalize();
+
+	TESTING_CUDA_FINALIZE();
 
 	return 0;
 }
