@@ -3,14 +3,14 @@
 CC = mpicc 
 FC = mpif77 
 
-HOME = /home/du/remus-home
+HOME = /home/du
 
 BLACSLIB =  $(HOME)/lib/BLACS/LIB/blacsCinit_MPI-LINUX-0.a  $(HOME)/lib/BLACS/LIB/blacsF77init_MPI-LINUX-0.a  $(HOME)/lib/BLACS/LIB/blacs_MPI-LINUX-0.a
 
 MKLROOT   = /mnt/scratch/sw/intel/2011.2.137/mkl
 FASTBLASLIB = -L$(MKLROOT)/lib/intel64 -Wl,--start-group -lscalapack $(BLACSLIB)  -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -Wl,--end-group -fopenmp
 #FASTBLASLIB = -L$(MKLROOT)/lib/intel64 -L$(SLPPATH) -Wl,--start-group -lmkl_scalapack_lp64 -lmkl_blacs_lp64 -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -Wl,--end-group -fopenmp
-GPULIB = -L/home/du/remus-home/sandbox/magma/trunk/lib -L/mnt/scratch/cuda/lib64 -lmagma -lmagmablas -lcublas -lcudart -lcuda
+GPULIB = -L/home/du/sandbox/magma/trunk/lib -L/mnt/scratch/cuda/lib64 -lmagma -lmagmablas -lcublas -lcudart -lcuda
 
 CUDADIR   = /mnt/scratch/cuda
 INC       = -I$(CUDADIR)/include
