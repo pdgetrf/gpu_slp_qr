@@ -45,7 +45,7 @@ static int c__6 = 6;
 	    , int *, doublereal *, doublereal *, int *, int *);
     extern int indxg2p_(int *, int *, int *, int *, 
 	    int *);
-    extern /* Subroutine */ int pdlarfb_(char *, char *, char *, char *, 
+    extern /* Subroutine */ int gpu_pdlarfb_(char *, char *, char *, char *, 
 	    int *, int *, int *, doublereal *, int *, int 
 	    *, int *, doublereal *, doublereal *, int *, int *, 
 	    int *, doublereal *, ftnlen, ftnlen, ftnlen, ftnlen), 
@@ -323,7 +323,7 @@ static int c__6 = 6;
 
 	i__1 = *n - jb;
 	i__2 = *ja + jb;
-	pdlarfb_("Left", "Transpose", "Forward", "Columnwise", m, &i__1, &jb, 
+	gpu_pdlarfb_("Left", "Transpose", "Forward", "Columnwise", m, &i__1, &jb, 
 		&a[1], ia, ja, &desca[1], &work[1], &a[1], ia, &i__2, &desca[
 		1], &work[ipw], (ftnlen)4, (ftnlen)9, (ftnlen)7, (ftnlen)10);
     }
@@ -360,7 +360,7 @@ static int c__6 = 6;
 	    i__3 = *m - j + *ja;
 	    i__4 = *n - j - jb + *ja;
 	    i__5 = j + jb;
-	    pdlarfb_("Left", "Transpose", "Forward", "Columnwise", &i__3, &
+	    gpu_pdlarfb_("Left", "Transpose", "Forward", "Columnwise", &i__3, &
 		    i__4, &jb, &a[1], &i__, &j, &desca[1], &work[1], &a[1], &
 		    i__, &i__5, &desca[1], &work[ipw], (ftnlen)4, (ftnlen)9, (
 		    ftnlen)7, (ftnlen)10);
