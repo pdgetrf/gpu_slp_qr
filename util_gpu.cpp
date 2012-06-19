@@ -1,4 +1,5 @@
 #include "util_gpu.h"
+#include "stdio.h"
 
 extern "C"
 void printout_devices( )
