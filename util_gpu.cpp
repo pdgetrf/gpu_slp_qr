@@ -6,7 +6,9 @@ void printout_devices( )
 {
 	int ndevices, idevice;
 	cudaGetDeviceCount( &ndevices );
-	for( idevice = 0; idevice < ndevices; idevice++ ) 
+
+	for( idevice = 0; idevice < 1; idevice++ ) 
+	//for( idevice = 0; idevice < ndevices; idevice++ ) 
 	{
 		cudaDeviceProp prop;
 		cudaGetDeviceProperties( &prop, idevice );
