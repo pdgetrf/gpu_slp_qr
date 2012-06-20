@@ -1,0 +1,31 @@
+[du@dancer qr]$ mpiexec -np 12 -hostfile  /etc/hostfile --bynode -x OMP_NUM_THREADS=8   -x LD_LIBRARY_PATH ./qr_test.x -p 4 -q 3 -r 2000 40000 2000 -nb 100
+device 0: Tesla C2050 / C2070, 1147.0 MHz clock, 3071.2 MB memory, capability 2.0
+device 0: Tesla C2050 / C2070, 1147.0 MHz clock, 2687.2 MB memory, capability 2.0
+device 0: Tesla C2050 / C2070, 1147.0 MHz clock, 2687.2 MB memory, capability 2.0
+device 0: Tesla C2050 / C2070, 1147.0 MHz clock, 2687.2 MB memory, capability 2.0
+device 0: Tesla C2050 / C2070, 1147.0 MHz clock, 2687.2 MB memory, capability 2.0
+device 0: Tesla C2050 / C2070, 1147.0 MHz clock, 2687.2 MB memory, capability 2.0
+device 0: Tesla C2050 / C2070, 1147.0 MHz clock, 2687.2 MB memory, capability 2.0
+device 0: Tesla C2050 / C2070, 1147.0 MHz clock, 2687.2 MB memory, capability 2.0
+device 0: Tesla C2070, 1147.0 MHz clock, 5375.2 MB memory, capability 2.0
+device 0: Tesla C2070, 1147.0 MHz clock, 5375.2 MB memory, capability 2.0
+device 0: Tesla C2070, 1147.0 MHz clock, 5375.2 MB memory, capability 2.0
+device 0: Tesla C2070, 1147.0 MHz clock, 5375.2 MB memory, capability 2.0
+done setting up MPI and BLACS, nprow=4, npcol=3, NB=100
+M		GFlop/s (r)		GFlop/s (n)		Perc		resid		who failed
+2000		10.305907		44.646111		-76.9		7.855562e-19		X
+4000		91.842794		104.122176		-11.8		4.922235e-19		X
+6000		122.687091		160.949060		-23.8		3.792017e-19		X
+8000		159.339127		195.569566		-18.5		3.175596e-19		X
+10000		211.406454		248.593841		-15.0		2.784268e-19		X
+12000		240.768224		290.592085		-17.1		2.503118e-19		X
+14000		263.665034		318.592898		-17.2		2.294454e-19		X
+16000		282.465493		339.556307		-16.8		2.124043e-19		X
+18000		302.808030		367.296878		-17.6		1.993436e-19		X
+20000		318.095724		393.396091		-19.1		1.879338e-19		X
+22000		332.437839		408.119568		-18.5		1.786411e-19		X
+24000		343.044733		421.649054		-18.6		1.702628e-19		X
+26000		355.251666		438.118097		-18.9		1.629701e-19		X
+28000		362.128477		455.214149		-20.4		1.567850e-19		X
+30000		373.183664		466.703124		-20.0		1.508974e-19		X
+

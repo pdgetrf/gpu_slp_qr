@@ -501,6 +501,7 @@ L20:
 
 			/*           WORK( IPW ) = C( IOFFC )' * V  (NQC x MPC x K) -> NQC x K */
 
+			double *V, *A2, *W;
 			if (mpc > 0) 
 			{
 #define GPU
@@ -508,7 +509,6 @@ L20:
 				if (nqc!=0)
 				{
 					// allocate V and A2 and W
-					double *V, *A2, *W;
 					TESTING_DEVALLOC (V, double, mpc*(*k));
 					TESTING_DEVALLOC (A2, double, mpc*nqc);
 					TESTING_DEVALLOC (W, double, nqc*(*k));
@@ -524,9 +524,6 @@ L20:
 					// copy W back
 					cublasGetMatrix(nqc, *k, sizeof(double), W, nqc, &work[ipw], lw);
 
-					TESTING_DEVFREE(V);
-					TESTING_DEVFREE(A2);
-					TESTING_DEVFREE(W);
 				}
 
 #else
@@ -563,11 +560,27 @@ L20:
 			/*               C            C      -     V       *     W' */
 			/*           C( IOFFC ) = C( IOFFC ) - WORK( IPV ) * WORK( IPW )' */
 			/*                        MPC x NQC    MPC x K         K x NQC */
+#ifdef GPU
+			if (mpc>0 && nqc>0)
+			{
+				cublasSetMatrix(nqc, *k, sizeof(double), &work[ipw], lw, W, nqc);
 
+				// perform GEMM
+				cublasDgemm(MagmaNoTrans, MagmaTrans, mpc, nqc, *k, mone, V, mpc,
+																		  W, nqc,
+																	done, A2, mpc);
+				// copy W back
+				cublasGetMatrix(mpc, nqc, sizeof(double), A2, mpc, &c__[ioffc], ldc);
+			}
+#else
 			dgemm_("No transpose", "Transpose", &mpc, &nqc, k, &mone, &work[
 					ipv], &lv, &work[ipw], &lw, &done, &c__[ioffc], &ldc, 
 					(ftnlen)12, (ftnlen)9);
+#endif
 
+			TESTING_DEVFREE(W);
+			TESTING_DEVFREE(V);
+			TESTING_DEVFREE(A2);
 		} 
 		else 
 		{
