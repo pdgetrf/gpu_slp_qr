@@ -13,6 +13,8 @@ http://www.netlib.org/f2c/libf2c.zip
 #include "stdlib.h"
 #include "stdio.h"
 #include "f2c.h"
+#include "util_gpu.h"
+
 
 /* Table of constant values */
 
@@ -501,26 +503,32 @@ L20:
 
 			if (mpc > 0) 
 			{
+#define GPU
 #ifdef GPU
-				// copy V and A2 to GPU
-				ublasSetMatrix(int rows, int cols, int elemSize, const void *A, int lda, void *B, int ldb);
+				if (nqc!=0)
+				{
+					// allocate V and A2 and W
+					double *V, *A2, *W;
+					TESTING_DEVALLOC (V, double, mpc*(*k));
+					TESTING_DEVALLOC (A2, double, mpc*nqc);
+					TESTING_DEVALLOC (W, double, nqc*(*k));
 
-				// perform GEMM
-				cublasDgemm(cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
-				                                                       int m, int n, int k,
-				                                                       const double
-				                                                       const double
-				                                                       const double
-				                                                       const double
-				                                                       double
-				                                                       *alpha,
-				                                                       *A, int lda,
-				                                                       *B, int ldb,
-				                                                       *beta,
-																	   *C, int ldc);
-				
-				// copy W back
-				cublasGetMatrix(int rows, int cols, int elemSize, const void *A, int lda, void *B, int ldb);
+					// copy V and A2 to GPU
+					cublasSetMatrix(mpc, nqc, sizeof(double), &c__[ioffc], ldc, A2, mpc);
+					cublasSetMatrix(mpc, *k, sizeof(double), &work[ipv], lv, V, mpc);
+
+					// perform GEMM
+					cublasDgemm(MagmaTrans, MagmaNoTrans, nqc, *k, mpc, done, A2, mpc,
+							V, mpc,
+							dzero, W, nqc);
+					// copy W back
+					cublasGetMatrix(nqc, *k, sizeof(double), W, nqc, &work[ipw], lw);
+
+					TESTING_DEVFREE(V);
+					TESTING_DEVFREE(A2);
+					TESTING_DEVFREE(W);
+				}
+
 #else
 				dgemm_("Transpose", "No transpose", &nqc, k, &mpc, &done, &
 						c__[ioffc], &ldc, &work[ipv], &lv, &dzero, &work[ipw],

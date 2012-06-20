@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 	int myrow, mycol;
 	int nprow, npcol;
 	double MPIt1, MPIt2, MPIelapsed1, MPIelapsed2;
-	t_checksuite cs;
+	double GF1, GF2;
 
 	cc=0;
 	nprow = npcol = 1;
@@ -152,7 +152,6 @@ int main(int argc, char **argv)
 
 			// allocate buffer for the local copy
 			//cs.localcopy = (double*)malloc(nb*nchkr*sizeof(double));
-			distr_matrix (false, &(cs.localcopy), cs.descL, M, (npcol+2)*nb, &grid, &(cs.np_L), &(cs.nq_L));
 
 			MPI_Allreduce ( MPI_IN_PLACE, &nchkr, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD );
 			nchkc = numroc_( &N, &nb, &mycol, &izero, &npcol ); //LOCr(N_A) 
@@ -193,7 +192,10 @@ int main(int argc, char **argv)
 			MPI_Reduce ( &t1, &MPIelapsed1, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 			
 			if (myrank_mpi==0)
-				printf ("%f\t\t", 4.0/3.0*M*M*M/MPIelapsed1/1e9);
+			{
+				GF1 = 4.0/3.0*M*M*M/MPIelapsed1/1e9;
+				printf ("%f\t\t", GF1);
+			}
 			
 			resid1 = verifyQR (Aorg, A, M, N, descA, tau, &grid);
 
@@ -230,7 +232,10 @@ int main(int argc, char **argv)
 			MPI_Reduce ( &t1, &MPIelapsed2, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
 			if (myrank_mpi==0)
-				printf ("%f\t\t", 4.0/3.0*M*M*M/MPIelapsed2/1e9);
+			{
+				GF2 = 4.0/3.0*M*M*M/MPIelapsed2/1e9;
+				printf ("%f\t\t", GF2);
+			}
 			
 			resid2 = verifyQR (Aorg, A, M, N, descA, tau, &grid);
 
@@ -239,7 +244,7 @@ int main(int argc, char **argv)
 		}
 			
 		if (myrank_mpi==0)
-			printf ("%2.1f\t\t", (MPIelapsed1-MPIelapsed2)/MPIelapsed2*100);
+			printf ("%2.1f\t\t", (GF1-GF2)/GF2*100);
 			//printf ("%2.1f\t\t", (MPIelapsed1-MPIelapsed2)/MPIelapsed2*100);
 
 		/*
