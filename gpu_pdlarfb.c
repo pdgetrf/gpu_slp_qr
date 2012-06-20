@@ -506,7 +506,7 @@ L20:
 			{
 #define GPU
 #ifdef GPU
-				if (nqc!=0)
+				if (nqc > 0)
 				{
 					// allocate V and A2 and W
 					TESTING_DEVALLOC (V, double, mpc*(*k));
