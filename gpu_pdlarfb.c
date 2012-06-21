@@ -404,26 +404,33 @@ static int c_n1 = -1;
 
 			pb_topget__(&ictxt, "Broadcast", "Rowwise", rowbtop, (ftnlen)9, (
 						ftnlen)7, (ftnlen)1);
-			if (mycol == ivcol) {
+			
+			printf ("here1\n");
+			if (mycol == ivcol) 
+			{
 				dgebs2d_(&ictxt, "Rowwise", rowbtop, &mpc, k, &v[ioffv], &ldv,
 						(ftnlen)7, (ftnlen)1);
-				if (myrow == ivrow) {
+				if (myrow == ivrow) 
+				{
 					dtrbs2d_(&ictxt, "Rowwise", rowbtop, uplo, "Non unit", k, 
 							k, &t[1], &nbv, (ftnlen)7, (ftnlen)1, (ftnlen)1, (
 								ftnlen)8);
 				}
 				dlacpy_("All", &mpc, k, &v[ioffv], &ldv, &work[ipv], &lv, (
 							ftnlen)3);
-			} else {
+			} 
+			else 
+			{
 				dgebr2d_(&ictxt, "Rowwise", rowbtop, &mpc, k, &work[ipv], &lv,
 						&myrow, &ivcol, (ftnlen)7, (ftnlen)1);
-				if (myrow == ivrow) {
+				if (myrow == ivrow) 
+				{
 					dtrbr2d_(&ictxt, "Rowwise", rowbtop, uplo, "Non unit", k, 
 							k, &t[1], &nbv, &myrow, &ivcol, (ftnlen)7, (
 								ftnlen)1, (ftnlen)1, (ftnlen)8);
 				}
 			}
-			printf ("here\n");
+			printf ("here2\n");
 
 			if (forward) 
 			{

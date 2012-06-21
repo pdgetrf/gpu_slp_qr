@@ -331,6 +331,7 @@ static int c__6 = 6;
 		TESTING_DEVALLOC (W, double, nqc*descA2[5]);
 		TESTING_DEVALLOC (V, double, mpc*descA2[5]);
 
+		//printf ("(%d,%d): ldc=%d, mpc=%d, nqc=%d\n", myrow, mycol, ldc, mpc, nqc);
 		cublasSetMatrix(mpc, nqc, sizeof(double), &a[jjc*ldc+iic+1], ldc, A2, ldc);
 	}
 
