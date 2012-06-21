@@ -130,8 +130,8 @@ void distr_matrix (bool fill,	double **A, int *descA,
 
 	if (np_iA*nq_iA!=0)
 	{
-		//*A = (double *)malloc(np_iA*nq_iA*sizeof(double)) ;
-		TESTING_HOSTALLOC(*A, double, np_iA*nq_iA);
+		*A = (double *)malloc(np_iA*nq_iA*sizeof(double)) ;
+		//TESTING_HOSTALLOC(*A, double, np_iA*nq_iA);
 		
 		if (*A == NULL) ABORT;
 		memset (*A, 0, np_iA*nq_iA*sizeof(double));

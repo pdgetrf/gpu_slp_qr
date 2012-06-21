@@ -22,13 +22,14 @@ static doublereal dzero = 0.;
 static doublereal done = 1.;
 static doublereal mone = -1.;
 static int c_n1 = -1;
+int ione = 1;
 
 /* Subroutine */ int gpu_pdlarfb_(char *side, char *trans, char *direct, char *
 		storev, int *m, int *n, int *k, doublereal *v, int *
 		iv, int *jv, int *descv, doublereal *t, doublereal *c__, 
 		int *ic, int *jc, int *descc, doublereal *work, ftnlen 
 		side_len, ftnlen trans_len, ftnlen direct_len, ftnlen storev_len,
-		double *A2, int *descA2, double *W, double *V)
+		double *A2, int *descA2, double *W, double *V, double *pinnbuf)
 {
 	/* System generated locals */
 	int i__1, i__2, i__3, i__4;
@@ -405,7 +406,6 @@ static int c_n1 = -1;
 			pb_topget__(&ictxt, "Broadcast", "Rowwise", rowbtop, (ftnlen)9, (
 						ftnlen)7, (ftnlen)1);
 			
-			printf ("here1\n");
 			if (mycol == ivcol) 
 			{
 				dgebs2d_(&ictxt, "Rowwise", rowbtop, &mpc, k, &v[ioffv], &ldv,
@@ -430,7 +430,6 @@ static int c_n1 = -1;
 								ftnlen)1, (ftnlen)1, (ftnlen)8);
 				}
 			}
-			printf ("here2\n");
 
 			if (forward) 
 			{
@@ -518,15 +517,20 @@ L20:
 
 			if (mpc > 0) 
 			{
-#define GPU
+//#define GPU
 #ifdef GPU
 				if (nqc > 0)
 				{
+					int iiA2, jjA2;
+					infog2l_(&ic, jc, descA2, &nprow, &npcol, &myrow, &mycol, 
+							&iiA2, &jjA2, &icrow, &iccol);
+					iiA2--; jjA2--;
 					// copy V to GPU
 					cublasSetMatrix(mpc, *k, sizeof(double), &work[ipv], lv, V, mpc);
 
 					// perform GEMM
-					cublasDgemm(MagmaTrans, MagmaNoTrans, nqc, *k, mpc, done, A2, mpc,
+					cublasDgemm(MagmaTrans, MagmaNoTrans, nqc, *k, mpc, done, 
+							&A2[jjA2*ldc+iiA2], mpc,
 							V, mpc, dzero, W, nqc);
 
 					// copy W back
@@ -568,10 +572,10 @@ L20:
 			/*               C            C      -     V       *     W' */
 			/*           C( IOFFC ) = C( IOFFC ) - WORK( IPV ) * WORK( IPW )' */
 			/*                        MPC x NQC    MPC x K         K x NQC */
+#undef GPU
 #ifdef GPU
 			if (mpc>0 && nqc>0)
 			{
-				int ione = 1;
 				cublasSetMatrix(nqc, *k, sizeof(double), &work[ipw], lw, W, nqc);
 				infog2l_(&ione, jc, &descc[1], &nprow, &npcol, &myrow, &mycol, 
 						&iic, &jjc, &icrow, &iccol);
@@ -582,7 +586,7 @@ L20:
 				if (mycol==iccol)// i have the next panel
 				{
 					// send the next panel to host
-					cudaMemcpyAsync	(&c__[jjc*ldc+iic], &A2[jjA2*ldc+iiA2],
+					cudaMemcpyAsync	(pinnbuf, &A2[jjA2*ldc+iiA2],
 							ldc*nbv*sizeof(double), cudaMemcpyDeviceToHost, 0);
 
 					// GPU performs the update 
@@ -591,8 +595,10 @@ L20:
 								mone, V, mpc,
 								W+*k, nqc,	done, A2+jjA2*ldc+iiA2+(*k)*ldc, ldc);
 
+
 					// CPU performs the update 
 					cudaThreadSynchronize();
+					memcpy (&c__[jjc*ldc+iic], pinnbuf, ldc*nbv*sizeof(double));
 					dgemm_("No transpose", "Transpose", &mpc, k, k, &mone, 
 							&work[ipv], &lv, &work[ipw], &lw, &done, &c__[ioffc], &ldc, 
 							(ftnlen)12, (ftnlen)9);

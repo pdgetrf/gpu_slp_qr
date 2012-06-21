@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 	int myrow, mycol;
 	int nprow, npcol;
 	double MPIt1, MPIt2, MPIelapsed1, MPIelapsed2;
-	double GF1, GF2;
+	double GF1=0, GF2=0;
 
 	cc=0;
 	nprow = npcol = 1;
@@ -276,9 +276,14 @@ int main(int argc, char **argv)
 
 		if (np_A*nq_A!=0)	
 		{
+			free(A);
+			free(Aorg);
+			/*
 			cudaFreeHost( A );
 			cudaFreeHost( Aorg );
+			*/
 		}
+
 	}
 
 	/*

@@ -16,7 +16,7 @@ CUDADIR   = /mnt/scratch/cuda
 INC       = -I$(CUDADIR)/include
 
 
-CFLAGS = -I/opt/mkl/include -I/opt/cuda/include
+CFLAGS = -I/opt/mkl/include -I/opt/cuda/include -Wall
 #CFLAGS += -DTIMING
 FFLAGS =  -fsecond-underscore
 

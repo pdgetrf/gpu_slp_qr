@@ -51,7 +51,8 @@ static int c__6 = 6;
     extern /* Subroutine */ int gpu_pdlarfb_(char *, char *, char *, char *, 
 	    int *, int *, int *, doublereal *, int *, int 
 	    *, int *, doublereal *, doublereal *, int *, int *, 
-	    int *, doublereal *, ftnlen, ftnlen, ftnlen, ftnlen, double *, int *, double *, double *), 
+	    int *, doublereal *, ftnlen, ftnlen, ftnlen, ftnlen, 
+		double *, int *, double *, double *, double *), 
 	    pdlarft_(char *, char *, int *, int *, doublereal *, 
 	    int *, int *, int *, doublereal *, doublereal *, 
 	    doublereal *, ftnlen, ftnlen), pxerbla_(int *, char *, 
@@ -325,11 +326,15 @@ static int c__6 = 6;
 	int mpc = numroc_(&i__1, &descA2[4], &myrow, &izero, &nprow);
 	i__1 = *n - descA2[4];
 	int nqc = numroc_(&i__1, &descA2[5], &mycol, &ione, &npcol);
+	
+	double *pinnbuf=NULL;
 	if (mpc*nqc>0)
 	{
 		TESTING_DEVALLOC (A2, double, mpc*nqc);
 		TESTING_DEVALLOC (W, double, nqc*descA2[5]);
 		TESTING_DEVALLOC (V, double, mpc*descA2[5]);
+		//TESTING_MALLOC(pinnbuf, double, mpc*descA2[5]);
+		TESTING_HOSTALLOC(pinnbuf, double, mpc*descA2[5]);
 
 		//printf ("(%d,%d): ldc=%d, mpc=%d, nqc=%d\n", myrow, mycol, ldc, mpc, nqc);
 		cublasSetMatrix(mpc, nqc, sizeof(double), &a[jjc*ldc+iic+1], ldc, A2, ldc);
@@ -361,7 +366,7 @@ static int c__6 = 6;
 	gpu_pdlarfb_("Left", "Transpose", "Forward", "Columnwise", m, &i__1, &jb, 
 		&a[1], ia, ja, &desca[1], &work[1], &a[1], ia, &i__2, &desca[
 		1], &work[ipw], (ftnlen)4, (ftnlen)9, (ftnlen)7, (ftnlen)10,
-		A2, descA2, W, V);
+		A2, descA2, W, V, pinnbuf);
     }
 
 /*     Loop over the remaining blocks of columns */
@@ -402,7 +407,7 @@ static int c__6 = 6;
 					i__4, &jb, &a[1], &i__, &j, &desca[1], &work[1], &a[1], 
 					&i__, &i__5, &desca[1], &work[ipw], 
 					(ftnlen)4, (ftnlen)9, (ftnlen)7, (ftnlen)10,
-					A2, descA2, W, V);
+					A2, descA2, W, V, pinnbuf);
 					// i__ = j, i__5 = j+jb
 		}
 
@@ -418,6 +423,7 @@ static int c__6 = 6;
 
 	if (mpc*nqc>0)
 	{
+		TESTING_HOSTFREE(pinnbuf);
 		TESTING_DEVFREE(W);
 		TESTING_DEVFREE(V);
 		TESTING_DEVFREE(A2);
