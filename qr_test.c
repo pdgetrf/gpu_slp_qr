@@ -276,8 +276,8 @@ int main(int argc, char **argv)
 
 		if (np_A*nq_A!=0)	
 		{
-			free (A);
-			free (Aorg);
+			cudaFreeHost( A );
+			cudaFreeHost( Aorg );
 		}
 	}
 

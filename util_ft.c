@@ -1,4 +1,5 @@
 #include "util_ft.h"
+#include "util_gpu.h"
 #include "slp.h"
 #define NB 80
 #define DTYPE_	0
@@ -129,7 +130,9 @@ void distr_matrix (bool fill,	double **A, int *descA,
 
 	if (np_iA*nq_iA!=0)
 	{
-		*A = (double *)malloc(np_iA*nq_iA*sizeof(double)) ;
+		//*A = (double *)malloc(np_iA*nq_iA*sizeof(double)) ;
+		TESTING_HOSTALLOC(*A, double, np_iA*nq_iA);
+		
 		if (*A == NULL) ABORT;
 		memset (*A, 0, np_iA*nq_iA*sizeof(double));
 	}

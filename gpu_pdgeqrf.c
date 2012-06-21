@@ -10,7 +10,10 @@
 		http://www.netlib.org/f2c/libf2c.zip
 */
 
+#include "stdlib.h"
+#include "stdio.h"
 #include "f2c.h"
+#include "util_gpu.h"
 
 /* Table of constant values */
 
@@ -48,7 +51,7 @@ static int c__6 = 6;
     extern /* Subroutine */ int gpu_pdlarfb_(char *, char *, char *, char *, 
 	    int *, int *, int *, doublereal *, int *, int 
 	    *, int *, doublereal *, doublereal *, int *, int *, 
-	    int *, doublereal *, ftnlen, ftnlen, ftnlen, ftnlen), 
+	    int *, doublereal *, ftnlen, ftnlen, ftnlen, ftnlen, double *, int *, double *, double *), 
 	    pdlarft_(char *, char *, int *, int *, doublereal *, 
 	    int *, int *, int *, doublereal *, doublereal *, 
 	    doublereal *, ftnlen, ftnlen), pxerbla_(int *, char *, 
@@ -282,6 +285,7 @@ static int c__6 = 6;
 	return 0;
     }
 
+
 /*     Quick return if possible */
 
     if (*m == 0 || *n == 0) {
@@ -299,6 +303,37 @@ static int c__6 = 6;
     pb_topset__(&ictxt, "Broadcast", "Columnwise", " ", (ftnlen)9, (ftnlen)10,
 	     (ftnlen)1);
 
+	// allocate memory on GPU for V and A2 and W
+	double *V=NULL, *A2=NULL, *W=NULL;
+	int ic, jc, iic, jjc, icrow, iccol; 
+	int ldc = desca[9];
+	ic = 1;
+	jc = 1 + desca[5];
+	infog2l_(&ic, &jc, &desca[1], &nprow, &npcol, &myrow, &mycol, 
+									&iic, &jjc, &icrow, &iccol);
+	
+	int descA2[9];
+	int n_A2 = *n - desca[5];
+	int izero = 0, ione = 1;
+	descinit_ (descA2, m, &n_A2, &desca[5], &desca[5], &izero, &ione, &ictxt, &ldc, &iinfo);
+	if (iinfo!=0)
+	{
+		printf ("error at descinit_, %d, %s\n", __LINE__, __FILE__);
+		exit(0);
+	}
+	i__1 = *m;
+	int mpc = numroc_(&i__1, &descA2[4], &myrow, &izero, &nprow);
+	i__1 = *n - descA2[4];
+	int nqc = numroc_(&i__1, &descA2[5], &mycol, &ione, &npcol);
+	if (mpc*nqc>0)
+	{
+		TESTING_DEVALLOC (A2, double, mpc*nqc);
+		TESTING_DEVALLOC (W, double, nqc*descA2[5]);
+		TESTING_DEVALLOC (V, double, mpc*descA2[5]);
+
+		cublasSetMatrix(mpc, nqc, sizeof(double), &a[jjc*ldc+iic+1], ldc, A2, ldc);
+	}
+
 /*     Handle the first block of columns separately */
 
 /* Computing MIN */
@@ -307,7 +342,6 @@ static int c__6 = 6;
     jb = jn - *ja + 1;
 
 /*     Compute the QR factorization of the first block A(ia:ia+m-1,ja:jn) */
-
     pdgeqr2_(m, &jb, &a[1], ia, ja, &desca[1], &tau[1], &work[1], lwork, &
 	    iinfo);
 
@@ -325,49 +359,54 @@ static int c__6 = 6;
 	i__2 = *ja + jb;
 	gpu_pdlarfb_("Left", "Transpose", "Forward", "Columnwise", m, &i__1, &jb, 
 		&a[1], ia, ja, &desca[1], &work[1], &a[1], ia, &i__2, &desca[
-		1], &work[ipw], (ftnlen)4, (ftnlen)9, (ftnlen)7, (ftnlen)10);
+		1], &work[ipw], (ftnlen)4, (ftnlen)9, (ftnlen)7, (ftnlen)10,
+		A2, descA2, W, V);
     }
 
 /*     Loop over the remaining blocks of columns */
 
     i__1 = *ja + k - 1;
     i__2 = desca[6];
-    for (j = jn + 1; i__2 < 0 ? j >= i__1 : j <= i__1; j += i__2) {
-/* Computing MIN */
-	i__3 = k - j + *ja;
-	jb = min(i__3,desca[6]);
-	i__ = *ia + j - *ja;
+    for (j = jn + 1; i__2 < 0 ? j >= i__1 : j <= i__1; j += i__2) 
+	{
+		/* Computing MIN */
+		i__3 = k - j + *ja;
+		jb = min(i__3,desca[6]);
+		i__ = *ia + j - *ja;	// ia == ja == 1
 
-/*        Compute the QR factorization of the current block */
-/*        A(i:ia+m-1,j:j+jb-1) */
+		/*        Compute the QR factorization of the current block */
+		/*        A(i:ia+m-1,j:j+jb-1) */
 
-	i__3 = *m - j + *ja;
-	pdgeqr2_(&i__3, &jb, &a[1], &i__, &j, &desca[1], &tau[1], &work[1], 
-		lwork, &iinfo);
+		i__3 = *m - j + *ja;
+		pdgeqr2_(&i__3, &jb, &a[1], &i__, &j, &desca[1], &tau[1], &work[1], 
+				lwork, &iinfo);
 
-	if (j + jb <= *ja + *n - 1) {
+		if (j + jb <= *ja + *n - 1) 
+		{
 
-/*           Form the triangular factor of the block reflector */
-/*           H = H(j) H(j+1) . . . H(j+jb-1) */
+			/*           Form the triangular factor of the block reflector */
+			/*           H = H(j) H(j+1) . . . H(j+jb-1) */
 
-	    i__3 = *m - j + *ja;
-	    pdlarft_("Forward", "Columnwise", &i__3, &jb, &a[1], &i__, &j, &
-		    desca[1], &tau[1], &work[1], &work[ipw], (ftnlen)7, (
-		    ftnlen)10);
+			i__3 = *m - j + *ja;
+			pdlarft_("Forward", "Columnwise", &i__3, &jb, &a[1], &i__, &j, &
+					desca[1], &tau[1], &work[1], &work[ipw], (ftnlen)7, (ftnlen)10);
 
-/*           Apply H' to A(i:ia+m-1,j+jb:ja+n-1) from the left */
+			/*           Apply H' to A(i:ia+m-1,j+jb:ja+n-1) from the left */
 
-	    i__3 = *m - j + *ja;
-	    i__4 = *n - j - jb + *ja;
-	    i__5 = j + jb;
-	    gpu_pdlarfb_("Left", "Transpose", "Forward", "Columnwise", &i__3, &
-		    i__4, &jb, &a[1], &i__, &j, &desca[1], &work[1], &a[1], &
-		    i__, &i__5, &desca[1], &work[ipw], (ftnlen)4, (ftnlen)9, (
-		    ftnlen)7, (ftnlen)10);
+			i__3 = *m - j + *ja;
+			i__4 = *n - j - jb + *ja;
+			i__5 = j + jb;
+			
+			gpu_pdlarfb_("Left", "Transpose", "Forward", "Columnwise", &i__3, &
+					i__4, &jb, &a[1], &i__, &j, &desca[1], &work[1], &a[1], 
+					&i__, &i__5, &desca[1], &work[ipw], 
+					(ftnlen)4, (ftnlen)9, (ftnlen)7, (ftnlen)10,
+					A2, descA2, W, V);
+					// i__ = j, i__5 = j+jb
+		}
+
+		/* L10: */
 	}
-
-/* L10: */
-    }
 
     pb_topset__(&ictxt, "Broadcast", "Rowwise", rowbtop, (ftnlen)9, (ftnlen)7,
 	     (ftnlen)1);
@@ -375,6 +414,13 @@ static int c__6 = 6;
 	    ftnlen)10, (ftnlen)1);
 
     work[1] = (doublereal) lwmin;
+
+	if (mpc*nqc>0)
+	{
+		TESTING_DEVFREE(W);
+		TESTING_DEVFREE(V);
+		TESTING_DEVFREE(A2);
+	}
 
     return 0;
 

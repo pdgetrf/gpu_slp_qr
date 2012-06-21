@@ -27,7 +27,8 @@ static int c_n1 = -1;
 		storev, int *m, int *n, int *k, doublereal *v, int *
 		iv, int *jv, int *descv, doublereal *t, doublereal *c__, 
 		int *ic, int *jc, int *descc, doublereal *work, ftnlen 
-		side_len, ftnlen trans_len, ftnlen direct_len, ftnlen storev_len)
+		side_len, ftnlen trans_len, ftnlen direct_len, ftnlen storev_len,
+		double *A2, int *descA2, double *W, double *V)
 {
 	/* System generated locals */
 	int i__1, i__2, i__3, i__4;
@@ -85,6 +86,12 @@ static int c_n1 = -1;
 	static char colbtop[1];
 	static logical forward;
 	static char rowbtop[1];
+
+	/*
+	static cudaStream_t stream[2];
+	cudaStreamCreate(&stream[0]);
+	cudaStreamCreate(&stream[1]);
+	*/
 
 
 	/*  -- ScaLAPACK auxiliary routine (version 1.7) -- */
@@ -416,6 +423,7 @@ static int c_n1 = -1;
 								ftnlen)1, (ftnlen)1, (ftnlen)8);
 				}
 			}
+			printf ("here\n");
 
 			if (forward) 
 			{
@@ -501,29 +509,21 @@ L20:
 
 			/*           WORK( IPW ) = C( IOFFC )' * V  (NQC x MPC x K) -> NQC x K */
 
-			double *V, *A2, *W;
 			if (mpc > 0) 
 			{
 #define GPU
 #ifdef GPU
 				if (nqc > 0)
 				{
-					// allocate V and A2 and W
-					TESTING_DEVALLOC (V, double, mpc*(*k));
-					TESTING_DEVALLOC (A2, double, mpc*nqc);
-					TESTING_DEVALLOC (W, double, nqc*(*k));
-
-					// copy V and A2 to GPU
-					cublasSetMatrix(mpc, nqc, sizeof(double), &c__[ioffc], ldc, A2, mpc);
+					// copy V to GPU
 					cublasSetMatrix(mpc, *k, sizeof(double), &work[ipv], lv, V, mpc);
 
 					// perform GEMM
 					cublasDgemm(MagmaTrans, MagmaNoTrans, nqc, *k, mpc, done, A2, mpc,
-							V, mpc,
-							dzero, W, nqc);
+							V, mpc, dzero, W, nqc);
+
 					// copy W back
 					cublasGetMatrix(nqc, *k, sizeof(double), W, nqc, &work[ipw], lw);
-
 				}
 
 #else
@@ -539,6 +539,7 @@ L20:
 
 			dgsum2d_(&ictxt, "Columnwise", " ", &nqc, k, &work[ipw], &lw, &
 					ivrow, &mycol, (ftnlen)10, (ftnlen)1);
+
 
 			if (myrow == ivrow) 
 			{
@@ -563,14 +564,41 @@ L20:
 #ifdef GPU
 			if (mpc>0 && nqc>0)
 			{
+				int ione = 1;
 				cublasSetMatrix(nqc, *k, sizeof(double), &work[ipw], lw, W, nqc);
+				infog2l_(&ione, jc, &descc[1], &nprow, &npcol, &myrow, &mycol, 
+						&iic, &jjc, &icrow, &iccol);
+				int iiA2, jjA2;
+				infog2l_(&ione, jc, descA2, &nprow, &npcol, &myrow, &mycol, 
+						&iiA2, &jjA2, &icrow, &iccol);
+				iiA2--; jjA2--;
+				if (mycol==iccol)// i have the next panel
+				{
+					// send the next panel to host
+					cudaMemcpyAsync	(&c__[jjc*ldc+iic], &A2[jjA2*ldc+iiA2],
+							ldc*nbv*sizeof(double), cudaMemcpyDeviceToHost, 0);
 
-				// perform GEMM
-				cublasDgemm(MagmaNoTrans, MagmaTrans, mpc, nqc, *k, mone, V, mpc,
-																		  W, nqc,
-																	done, A2, mpc);
+					// GPU performs the update 
+					if (nqc>*k)
+						cublasDgemm(MagmaNoTrans, MagmaTrans, mpc, nqc-*k, *k, 
+								mone, V, mpc,
+								W+*k, nqc,	done, A2+jjA2*ldc+iiA2+(*k)*ldc, ldc);
+
+					// CPU performs the update 
+					cudaThreadSynchronize();
+					dgemm_("No transpose", "Transpose", &mpc, k, k, &mone, 
+							&work[ipv], &lv, &work[ipw], &lw, &done, &c__[ioffc], &ldc, 
+							(ftnlen)12, (ftnlen)9);
+				}
+				else
+				{
+					// perform GEMM
+					cublasDgemm(MagmaNoTrans, MagmaTrans, mpc, nqc, *k, mone, V, mpc,
+							W, nqc,	done, &A2[jjA2*ldc+iiA2], mpc);
+				}
+
 				// copy W back
-				cublasGetMatrix(mpc, nqc, sizeof(double), A2, mpc, &c__[ioffc], ldc);
+				//cublasGetMatrix(mpc, nqc, sizeof(double), A2, mpc, &c__[ioffc], ldc);
 			}
 #else
 			dgemm_("No transpose", "Transpose", &mpc, &nqc, k, &mone, &work[
@@ -578,9 +606,6 @@ L20:
 					(ftnlen)12, (ftnlen)9);
 #endif
 
-			TESTING_DEVFREE(W);
-			TESTING_DEVFREE(V);
-			TESTING_DEVFREE(A2);
 		} 
 		else 
 		{
@@ -1125,6 +1150,12 @@ L80:
 
 		}
 	}
+
+
+	/*
+	cudaStreamDestroy(stream[0]);
+	cudaStreamDestroy(stream[1]);
+	*/
 
 	return 0;
 
