@@ -528,11 +528,11 @@ L20:
 					iiA2--; jjA2--;
 
 					/*
-					if (myrow==1 && mycol==0)
+					if (myrow==2 && mycol==0)
 						printf ("\n(%d,%d): k=%d, mpc=%d, nqc=%d, ic=%d, jc=%d, iiA2=%d, jjA2=%d, icrow=%d, iccol=%d, ldc=%d\n", 
 								myrow, mycol, *k, mpc, nqc, *ic, *jc, 
 								iiA2, jjA2, icrow, iccol, ldc);
-					*/
+								*/
 
 					// perform GEMM
 					cublasDgemm(MagmaTrans, MagmaNoTrans, nqc, *k, mpc, done, 
@@ -587,12 +587,12 @@ L20:
 			/*           C( IOFFC ) = C( IOFFC ) - WORK( IPV ) * WORK( IPW )' */
 			/*                        MPC x NQC    MPC x K         K x NQC */
 #ifdef GPU
+			infog2l_(&ione, jc, &descc[1], &nprow, &npcol, &myrow, &mycol, 
+					&iic, &jjc, &icrow, &iccol);
+
 			if (mpc>0 && nqc>0)
 			{
 				cublasSetMatrix(nqc, *k, sizeof(double), &work[ipw], lw, W, nqc);
-
-				infog2l_(&ione, jc, &descc[1], &nprow, &npcol, &myrow, &mycol, 
-						&iic, &jjc, &icrow, &iccol);
 
 				int iiA2, jjA2;
 				int jnc = *jc-nbv;
@@ -606,7 +606,8 @@ L20:
 					cudaMemcpyAsync	(pinnbuf, &A2[jjA2*ldc+iiA2],
 							ldc*nbv*sizeof(double), cudaMemcpyDeviceToHost, fstream);
 					
-					//printf ("(%d,%d) has the panel when ic=%d, jc=%d, copying A2(%d,%d) of size %dx%d\n", myrow, mycol, *ic, *jc, iiA2, jjA2, ldc, nbv);
+					//printf ("(%d,%d) has the panel when ic=%d, jc=%d, copying A2(%d,%d) of size %dx%d, mpc=%d, npc=%d\n"
+					//, myrow, mycol, *ic, *jc, iiA2, jjA2, ldc, nbv, mpc, nqc);
 
 					// GPU performs the update 
 					if (nqc>*k)
@@ -633,6 +634,9 @@ L20:
 					infog2l_(ic, &jnc, descA2, &nprow, &npcol, &myrow, &mycol, 
 							&iiA2, &jjA2, &icrow, &iccol);
 					iiA2--;		jjA2--;
+					//printf ("\n(%d,%d): k=%d, mpc=%d, nqc=%d, ic=%d, jc=%d, iiA2=%d, jjA2=%d, icrow=%d, iccol=%d, ldc=%d\n", 
+					//		myrow, mycol, *k, mpc, nqc, *ic, *jc, 
+					//		iiA2, jjA2, icrow, iccol, ldc);
 					cublasDgemm(MagmaNoTrans, MagmaTrans, mpc, nqc, *k, mone, V, mpc,
 							W, nqc,	done, &A2[jjA2*ldc+iiA2], ldc);
 				}
@@ -641,6 +645,21 @@ L20:
 
 				// copy W back
 				//cublasGetMatrix(mpc, nqc, sizeof(double), A2, mpc, &c__[ioffc], ldc);
+			}
+			else if (mycol==iccol) // i'm in the next panel but I don't have things for the trailing update
+			{
+				int iiA2, jjA2;
+				int jnc = *jc-nbv;
+				infog2l_(&ione, &jnc, descA2, &nprow, &npcol, &myrow, &mycol, 
+						&iiA2, &jjA2, &icrow, &iccol);
+				iiA2--; jjA2--;
+
+				// send the next panel to host
+				cudaMemcpyAsync	(pinnbuf, &A2[jjA2*ldc+iiA2],
+						ldc*nbv*sizeof(double), cudaMemcpyDeviceToHost, fstream);
+
+				cudaStreamSynchronize	(fstream); 	
+				memcpy (&c__[(jjc-1)*ldc+(iic-1)+1], pinnbuf, ldc*nbv*sizeof(double));
 			}
 #else
 			dgemm_("No transpose", "Transpose", &mpc, &nqc, k, &mone, &work[

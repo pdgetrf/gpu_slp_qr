@@ -334,6 +334,7 @@ static int c__6 = 6;
 	double *pinnbuf=NULL;
 	if (mpc*nqc>0)
 	{
+		//printf ("\n(%d,%d) mpc=%d, nqc=%d, ldc=%d\n", myrow, mycol, mpc, nqc, lda);
 		TESTING_DEVALLOC (A2, double, mpc*nqc);
 		TESTING_DEVALLOC (W, double, nqc*descA2[5]);
 		TESTING_DEVALLOC (V, double, mpc*descA2[5]);
