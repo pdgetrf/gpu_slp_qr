@@ -307,16 +307,17 @@ static int c__6 = 6;
 	// allocate memory on GPU for V and A2 and W
 	double *V=NULL, *A2=NULL, *W=NULL;
 	int ic, jc, iic, jjc, icrow, iccol; 
-	int ldc = desca[9];
+	int lda = desca[9];
 	ic = 1;
 	jc = 1 + desca[5];
 	infog2l_(&ic, &jc, &desca[1], &nprow, &npcol, &myrow, &mycol, 
 									&iic, &jjc, &icrow, &iccol);
+	iic--;	jjc--;
 	
 	int descA2[9];
 	int n_A2 = *n - desca[5];
 	int izero = 0, ione = 1;
-	descinit_ (descA2, m, &n_A2, &desca[5], &desca[5], &izero, &ione, &ictxt, &ldc, &iinfo);
+	descinit_ (descA2, m, &n_A2, &desca[5], &desca[5], &izero, &ione, &ictxt, &lda, &iinfo);
 	if (iinfo!=0)
 	{
 		printf ("error at descinit_, %d, %s\n", __LINE__, __FILE__);
@@ -333,11 +334,14 @@ static int c__6 = 6;
 		TESTING_DEVALLOC (A2, double, mpc*nqc);
 		TESTING_DEVALLOC (W, double, nqc*descA2[5]);
 		TESTING_DEVALLOC (V, double, mpc*descA2[5]);
-		//TESTING_MALLOC(pinnbuf, double, mpc*descA2[5]);
 		TESTING_HOSTALLOC(pinnbuf, double, mpc*descA2[5]);
 
-		//printf ("(%d,%d): ldc=%d, mpc=%d, nqc=%d\n", myrow, mycol, ldc, mpc, nqc);
-		cublasSetMatrix(mpc, nqc, sizeof(double), &a[jjc*ldc+iic+1], ldc, A2, ldc);
+		/*
+		if (myrow==1 && mycol==0)
+			printf ("(%d,%d): lda=%d, mpc=%d, nqc=%d, iic=%d, jjc=%d\n", myrow, mycol, lda, mpc, nqc, iic, jjc);
+		*/
+		cublasSetMatrix(mpc, nqc, sizeof(double), &a[jjc*lda+iic+1], lda, A2, lda);
+	//	cublasGetMatrix(mpc, nqc, sizeof(double), A2, lda, &a[jjc*lda+iic+1], lda);
 	}
 
 /*     Handle the first block of columns separately */

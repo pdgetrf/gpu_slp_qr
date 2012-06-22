@@ -12,6 +12,7 @@ http://www.netlib.org/f2c/libf2c.zip
 
 #include "stdlib.h"
 #include "stdio.h"
+#include "string.h"
 #include "f2c.h"
 #include "util_gpu.h"
 
@@ -88,11 +89,8 @@ int ione = 1;
 	static logical forward;
 	static char rowbtop[1];
 
-	/*
-	static cudaStream_t stream[2];
-	cudaStreamCreate(&stream[0]);
-	cudaStreamCreate(&stream[1]);
-	*/
+	static cudaStream_t fstream;
+	cudaStreamCreate(&fstream);
 
 
 	/*  -- ScaLAPACK auxiliary routine (version 1.7) -- */
@@ -517,21 +515,37 @@ L20:
 
 			if (mpc > 0) 
 			{
-//#define GPU
+#define GPU
 #ifdef GPU
 				if (nqc > 0)
 				{
-					int iiA2, jjA2;
-					infog2l_(&ic, jc, descA2, &nprow, &npcol, &myrow, &mycol, 
-							&iiA2, &jjA2, &icrow, &iccol);
-					iiA2--; jjA2--;
 					// copy V to GPU
 					cublasSetMatrix(mpc, *k, sizeof(double), &work[ipv], lv, V, mpc);
 
+					int iiA2, jjA2;
+					infog2l_(ic, ic, descA2, &nprow, &npcol, &myrow, &mycol, 
+							&iiA2, &jjA2, &icrow, &iccol);
+					iiA2--; jjA2--;
+
+					/*
+					if (myrow==1 && mycol==0)
+						printf ("\n(%d,%d): k=%d, mpc=%d, nqc=%d, ic=%d, jc=%d, iiA2=%d, jjA2=%d, icrow=%d, iccol=%d, ldc=%d\n", 
+								myrow, mycol, *k, mpc, nqc, *ic, *jc, 
+								iiA2, jjA2, icrow, iccol, ldc);
+					*/
+
 					// perform GEMM
 					cublasDgemm(MagmaTrans, MagmaNoTrans, nqc, *k, mpc, done, 
-							&A2[jjA2*ldc+iiA2], mpc,
+							&A2[jjA2*ldc+iiA2], ldc,
 							V, mpc, dzero, W, nqc);
+					/*
+					double *A3;
+					TESTING_DEVALLOC (A3, double, mpc*nqc);
+					cublasSetMatrix(mpc, nqc, sizeof(double), &c__[ioffc], ldc, A3, mpc);
+					cublasDgemm(MagmaTrans, MagmaNoTrans, nqc, *k, mpc, done, 
+							A3, mpc,
+							V, mpc, dzero, W, nqc);
+					*/
 
 					// copy W back
 					cublasGetMatrix(nqc, *k, sizeof(double), W, nqc, &work[ipw], lw);
@@ -572,33 +586,43 @@ L20:
 			/*               C            C      -     V       *     W' */
 			/*           C( IOFFC ) = C( IOFFC ) - WORK( IPV ) * WORK( IPW )' */
 			/*                        MPC x NQC    MPC x K         K x NQC */
-#undef GPU
 #ifdef GPU
 			if (mpc>0 && nqc>0)
 			{
 				cublasSetMatrix(nqc, *k, sizeof(double), &work[ipw], lw, W, nqc);
+
 				infog2l_(&ione, jc, &descc[1], &nprow, &npcol, &myrow, &mycol, 
 						&iic, &jjc, &icrow, &iccol);
+
 				int iiA2, jjA2;
-				infog2l_(&ione, jc, descA2, &nprow, &npcol, &myrow, &mycol, 
+				int jnc = *jc-nbv;
+				infog2l_(&ione, &jnc, descA2, &nprow, &npcol, &myrow, &mycol, 
 						&iiA2, &jjA2, &icrow, &iccol);
 				iiA2--; jjA2--;
+
 				if (mycol==iccol)// i have the next panel
 				{
 					// send the next panel to host
 					cudaMemcpyAsync	(pinnbuf, &A2[jjA2*ldc+iiA2],
-							ldc*nbv*sizeof(double), cudaMemcpyDeviceToHost, 0);
+							ldc*nbv*sizeof(double), cudaMemcpyDeviceToHost, fstream);
+					
+					//printf ("(%d,%d) has the panel when ic=%d, jc=%d, copying A2(%d,%d) of size %dx%d\n", myrow, mycol, *ic, *jc, iiA2, jjA2, ldc, nbv);
 
 					// GPU performs the update 
 					if (nqc>*k)
+					{
+						infog2l_(ic, jc, descA2, &nprow, &npcol, &myrow, &mycol, 
+								&iiA2, &jjA2, &icrow, &iccol);
+						iiA2--;		jjA2--;
 						cublasDgemm(MagmaNoTrans, MagmaTrans, mpc, nqc-*k, *k, 
 								mone, V, mpc,
-								W+*k, nqc,	done, A2+jjA2*ldc+iiA2+(*k)*ldc, ldc);
+								W+*k, nqc,	done, A2+jjA2*ldc+iiA2, ldc);
+					}
 
 
 					// CPU performs the update 
-					cudaThreadSynchronize();
-					memcpy (&c__[jjc*ldc+iic], pinnbuf, ldc*nbv*sizeof(double));
+					cudaStreamSynchronize	(fstream); 	
+					memcpy (&c__[(jjc-1)*ldc+(iic-1)+1], pinnbuf, ldc*nbv*sizeof(double));
 					dgemm_("No transpose", "Transpose", &mpc, k, k, &mone, 
 							&work[ipv], &lv, &work[ipw], &lw, &done, &c__[ioffc], &ldc, 
 							(ftnlen)12, (ftnlen)9);
@@ -606,9 +630,14 @@ L20:
 				else
 				{
 					// perform GEMM
+					infog2l_(ic, &jnc, descA2, &nprow, &npcol, &myrow, &mycol, 
+							&iiA2, &jjA2, &icrow, &iccol);
+					iiA2--;		jjA2--;
 					cublasDgemm(MagmaNoTrans, MagmaTrans, mpc, nqc, *k, mone, V, mpc,
-							W, nqc,	done, &A2[jjA2*ldc+iiA2], mpc);
+							W, nqc,	done, &A2[jjA2*ldc+iiA2], ldc);
 				}
+					
+				cudaThreadSynchronize();
 
 				// copy W back
 				//cublasGetMatrix(mpc, nqc, sizeof(double), A2, mpc, &c__[ioffc], ldc);
@@ -1165,10 +1194,7 @@ L80:
 	}
 
 
-	/*
-	cudaStreamDestroy(stream[0]);
-	cudaStreamDestroy(stream[1]);
-	*/
+	cudaStreamDestroy(fstream);
 
 	return 0;
 
