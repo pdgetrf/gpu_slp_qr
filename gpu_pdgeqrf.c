@@ -232,6 +232,9 @@ static int c__6 = 6;
 /*     .. Intrinsic Functions .. */
 /*     .. */
 /*     .. Executable Statements .. */
+	
+	static cudaStream_t fstream;
+	cudaStreamCreate(&fstream);
 
 /*     Get grid parameters */
 
@@ -336,12 +339,10 @@ static int c__6 = 6;
 		TESTING_DEVALLOC (V, double, mpc*descA2[5]);
 		TESTING_HOSTALLOC(pinnbuf, double, mpc*descA2[5]);
 
-		/*
-		if (myrow==1 && mycol==0)
-			printf ("(%d,%d): lda=%d, mpc=%d, nqc=%d, iic=%d, jjc=%d\n", myrow, mycol, lda, mpc, nqc, iic, jjc);
-		*/
-		cublasSetMatrix(mpc, nqc, sizeof(double), &a[jjc*lda+iic+1], lda, A2, lda);
-	//	cublasGetMatrix(mpc, nqc, sizeof(double), A2, lda, &a[jjc*lda+iic+1], lda);
+		//cublasSetMatrix(mpc, nqc, sizeof(double), &a[jjc*lda+iic+1], lda, A2, lda);
+		
+		cudaMemcpyAsync	(A2, &a[jjc*lda+iic+1],
+				mpc*nqc*sizeof(double), cudaMemcpyHostToDevice, fstream);
 	}
 
 /*     Handle the first block of columns separately */
@@ -365,6 +366,7 @@ static int c__6 = 6;
 
 /*        Apply H' to A(ia:ia+m-1,ja+jb:ja+n-1) from the left */
 
+	cudaStreamSynchronize	(fstream); 	
 	i__1 = *n - jb;
 	i__2 = *ja + jb;
 	gpu_pdlarfb_("Left", "Transpose", "Forward", "Columnwise", m, &i__1, &jb, 
@@ -432,6 +434,8 @@ static int c__6 = 6;
 		TESTING_DEVFREE(V);
 		TESTING_DEVFREE(A2);
 	}
+
+	cudaStreamDestroy(fstream);
 
     return 0;
 
