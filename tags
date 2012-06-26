@@ -69,11 +69,12 @@
 9999	pdlaprnt.f	/^ 9999 FORMAT(A,'(',I6,',',I6,')=',D30.18,';')$/;"	l	subroutine:PDLAPRNT	file:
 A	util_ft.h	/^	double *A;$/;"	m	struct:s_FTKit
 ABORT	util_ft.h	23;"	d
+ASYN	gpu_pdlarfb.c	606;"	d	file:
 A_error	util_ft.h	17;"	d
 BLACSLIB	makefile	/^BLACSLIB =  $(HOME)\/lib\/BLACS\/LIB\/blacsCinit_MPI-LINUX-0.a  $(HOME)\/lib\/BLACS\/LIB\/blacsF77init_MPI-LINUX-0.a  $(HOME)\/lib\/BLACS\/LIB\/blacs_MPI-LINUX-0.a$/;"	m
 B_error	util_ft.h	20;"	d
 CC	makefile	/^CC = mpicc $/;"	m
-CFLAGS	makefile	/^CFLAGS = -I\/opt\/mkl\/include -I\/opt\/cuda\/include$/;"	m
+CFLAGS	makefile	/^CFLAGS = -I\/opt\/mkl\/include -I\/opt\/cuda\/include -Wall$/;"	m
 CHECKSUM	util_ft.h	29;"	d
 COPY	util_ft.h	41;"	d
 CSRC_	slp.h	8;"	d
@@ -98,7 +99,7 @@ FALSE_	f2c.h	30;"	d
 FASTBLASLIB	makefile	/^FASTBLASLIB = -L$(MKLROOT)\/lib\/intel64 -Wl,--start-group -lscalapack $(BLACSLIB)  -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -Wl,--end-group -fopenmp$/;"	m
 FC	makefile	/^FC = mpif77 $/;"	m
 FFLAGS	makefile	/^FFLAGS =  -fsecond-underscore$/;"	m
-GPU	gpu_pdlarfb.c	507;"	d	file:
+GPU	gpu_pdlarfb.c	518;"	d	file:
 GPULIB	makefile	/^GPULIB = -L\/opt\/cuda\/lib64 -lcublas -lcudart -lcuda$/;"	m
 HOME	makefile	/^HOME = \/home\/du$/;"	m
 H_f	f2c.h	/^typedef VOID H_f;	\/* character function *\/$/;"	t
@@ -242,16 +243,9 @@ bit_clear	f2c.h	164;"	d
 bit_set	f2c.h	165;"	d
 bit_test	f2c.h	163;"	d
 c	f2c.h	/^	complex c;$/;"	m	union:Multitype
-c__1	ft_pdgeqrf0.c	/^static int c__1 = 1;$/;"	v	file:
 c__1	gpu_pdgeqrf.c	/^static int c__1 = 1;$/;"	v	file:
-c__2	ft_pdgeqrf0.c	/^static int c__2 = 2;$/;"	v	file:
 c__2	gpu_pdgeqrf.c	/^static int c__2 = 2;$/;"	v	file:
-c__6	ft_pdgeqrf0.c	/^static int c__6 = 6;$/;"	v	file:
 c__6	gpu_pdgeqrf.c	/^static int c__6 = 6;$/;"	v	file:
-c_b21	ft_pdlarfb.c	/^static doublereal c_b21 = 0.;$/;"	v	file:
-c_b22	ft_pdlarfb.c	/^static doublereal c_b22 = 1.;$/;"	v	file:
-c_b48	ft_pdlarfb.c	/^static doublereal c_b48 = -1.;$/;"	v	file:
-c_n1	ft_pdlarfb.c	/^static int c_n1 = -1;$/;"	v	file:
 c_n1	gpu_pdlarfb.c	/^static int c_n1 = -1;$/;"	v	file:
 cc	qr_test.c	/^int cc;$/;"	v
 cerr	f2c.h	/^{	flag cerr;$/;"	m	struct:__anon6
@@ -288,8 +282,6 @@ err_step	qr_test.c	/^int err_step=1;$/;"	v
 flag	f2c.h	/^typedef long int flag;$/;"	t
 flag	f2c.h	/^typedef short flag;$/;"	t
 fprintmatrix_	util_ft.c	/^void fprintmatrix_ (double * A, int m, int n, int * descA, char * NAME, int len)$/;"	f
-ft_pdgeqrf0	ft_pdgeqrf0.c	/^\/* Subroutine *\/ int ft_pdgeqrf0(int *m, int *n, doublereal *a, int *$/;"	f
-ft_pdlarfb	ft_pdlarfb.c	/^\/* Subroutine *\/ int ft_pdlarfb(char *side, char *trans, char *direct, char *$/;"	f
 ftnint	f2c.h	/^typedef long int ftnint;$/;"	t
 ftnint	f2c.h	/^typedef short ftnint;$/;"	t
 ftnlen	f2c.h	/^typedef long int ftnlen;$/;"	t
@@ -341,6 +333,7 @@ integer1	f2c.h	/^typedef char integer1;$/;"	t
 inunf	f2c.h	/^	char	*inunf;$/;"	m	struct:__anon8
 inunflen	f2c.h	/^	ftnlen	inunflen;$/;"	m	struct:__anon8
 inunit	f2c.h	/^	ftnint inunit;$/;"	m	struct:__anon8
+ione	gpu_pdlarfb.c	/^int ione = 1;$/;"	v
 kit	util_ft.h	/^	t_FTKit kit;$/;"	m	struct:__anon9
 localcopy	util_ft.h	/^	double *localcopy;$/;"	m	struct:__anon9
 localcopy	util_ft.h	/^	double *localcopy;$/;"	m	struct:s_FTKit
