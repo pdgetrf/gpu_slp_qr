@@ -603,8 +603,11 @@ L20:
 				if (mycol==iccol)// i have the next panel
 				{
 					// send the next panel to host
+#define ASYN
+#ifdef ASYN
 					cudaMemcpyAsync	(pinnbuf, &A2[jjA2*ldc+iiA2],
 							ldc*nbv*sizeof(double), cudaMemcpyDeviceToHost, fstream);
+#endif
 					
 					//printf ("(%d,%d) has the panel when ic=%d, jc=%d, copying A2(%d,%d) of size %dx%d, mpc=%d, npc=%d\n"
 					//, myrow, mycol, *ic, *jc, iiA2, jjA2, ldc, nbv, mpc, nqc);
@@ -612,18 +615,23 @@ L20:
 					// GPU performs the update 
 					if (nqc>*k)
 					{
+						int iiA3, jjA3;
 						infog2l_(ic, jc, descA2, &nprow, &npcol, &myrow, &mycol, 
-								&iiA2, &jjA2, &icrow, &iccol);
-						iiA2--;		jjA2--;
+								&iiA3, &jjA3, &icrow, &iccol);
+						iiA3--;		jjA3--;
 						cublasDgemm(MagmaNoTrans, MagmaTrans, mpc, nqc-*k, *k, 
 								mone, V, mpc,
-								W+*k, nqc,	done, A2+jjA2*ldc+iiA2, ldc);
+								W+*k, nqc,	done, A2+jjA3*ldc+iiA3, ldc);
 					}
 
 
 					// CPU performs the update 
+#ifdef ASYN
 					cudaStreamSynchronize	(fstream); 	
 					memcpy (&c__[(jjc-1)*ldc+(iic-1)+1], pinnbuf, ldc*nbv*sizeof(double));
+#else
+					cublasGetMatrix(ldc, nbv, sizeof(double), &A2[jjA2*ldc+iiA2], ldc, &c__[(jjc-1)*ldc+(iic-1)+1], ldc);
+#endif
 					dgemm_("No transpose", "Transpose", &mpc, k, k, &mone, 
 							&work[ipv], &lv, &work[ipw], &lw, &done, &c__[ioffc], &ldc, 
 							(ftnlen)12, (ftnlen)9);
