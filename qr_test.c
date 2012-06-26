@@ -181,7 +181,6 @@ int main(int argc, char **argv)
 			MPI_Barrier(MPI_COMM_WORLD);
 			MPIt1 = MPI_Wtime();    
 
-			//first entry (healthy)
 			gpu_pdgeqrf_ (&M, &N, A, &ione, &ione, descA, tau, work, &lwork, &info);
 			checkerror(info, 0);
 			
