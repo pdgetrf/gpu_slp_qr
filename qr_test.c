@@ -148,14 +148,12 @@ int main(int argc, char **argv)
 		 */
 		{
 			// determine checksum size
-			nchkr = numroc_( &M, &nb, &myrow, &izero, &nprow ); //LOCr(M_A) 
 
 			// allocate buffer for the local copy
 			//cs.localcopy = (double*)malloc(nb*nchkr*sizeof(double));
 
-			MPI_Allreduce ( MPI_IN_PLACE, &nchkr, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD );
 			nchkc = numroc_( &N, &nb, &mycol, &izero, &npcol ); //LOCr(N_A) 
-			MPI_Allreduce ( MPI_IN_PLACE, &nchkc, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD );
+			//MPI_Allreduce ( MPI_IN_PLACE, &nchkc, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD );
 
 			// generate matrix
 			distr_matrix (true,	 &A,    descA, M, N, &grid, &np_A, &nq_A);
